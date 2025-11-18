@@ -1,5 +1,10 @@
+from sklearn.utils.class_weight import compute_class_weight
+import numpy as np
+
 from datetime import datetime
+import os
 import json
+
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
@@ -41,11 +46,16 @@ train_loader = DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=True, num_wor
 val_loader = DataLoader(val_ds, batch_size=BATCH_SIZE, shuffle=False, num_workers=4)
 test_loader = DataLoader(test_ds, batch_size=BATCH_SIZE, shuffle=False, num_workers=4)
 
+# handle class disbalance calculated class weights
+targets = [y for _, y in full_dataset.samples]
+class_weights = compute_class_weight(class_weight="balanced", classes=np.unique(targets), y=targets)
+class_weights = torch.tensor(class_weights, dtype=torch.float)
+
 # model
 model = BaseLineCNN(num_classes)
 
 # criterion, optimizer, scheduler
-criterion = nn.CrossEntropyLoss()
+criterion = nn.CrossEntropyLoss(weight=class_weights)
 optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 
                                                        factor=LRS_PLATO_FACTOR, 
@@ -69,6 +79,9 @@ pipeline = TrainPipeline(
 best_model, metrics = pipeline.train()
 
 # save model & metrics
+os.makedirs("saved_models", exist_ok=True)
+os.makedirs("results", exist_ok=True)
+
 if best_model is not None:
     now = datetime.now()
     postfix = now.strftime('%d-%m_%H-%M')
