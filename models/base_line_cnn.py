@@ -11,29 +11,30 @@ class BaseLineCNN(nn.Module):
             nn.BatchNorm2d(32),
             nn.ReLU(),
             
-            nn.Conv2d(32, 64, kernel_size=3, stride=2),
+            nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1),
             nn.BatchNorm2d(64),
             nn.ReLU(),
 
-            nn.Conv2d(64, 64, kernel_size=3),
-            nn.BatchNorm2d(64),
+            nn.Conv2d(64, 128, kernel_size=3),
+            nn.BatchNorm2d(128),
             nn.ReLU(),
             
-            nn.Conv2d(64, 128, kernel_size=3, stride=2),
+            nn.Conv2d(128, 128, kernel_size=3, stride=2, padding=1),
             nn.BatchNorm2d(128),
             nn.ReLU(),
 
-            nn.Conv2d(128, 128, kernel_size=3),
-            nn.BatchNorm2d(128),
+            nn.Conv2d(128, 256, kernel_size=3, padding=1),
+            nn.BatchNorm2d(256),
             nn.ReLU(),
         )
         # avg pool
         self.avgpool = nn.AdaptiveAvgPool2d((4, 4))
         # classification
         self.classifier = nn.Sequential(
-            nn.Linear(128 * 4 * 4, 256),
+            nn.Linear(256 * 4 * 4, 512),
             nn.ReLU(),
-            nn.Linear(256, n_classes),
+            # nn.Dropout(0.4),
+            nn.Linear(512, n_classes),
         )
 
     def forward(self, X: torch.Tensor):
