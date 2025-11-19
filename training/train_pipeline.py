@@ -95,9 +95,9 @@ class TrainPipeline:
 
         val_loss = running_loss / len(self.val_loader)
         val_acc = sum([p==t for p,t in zip(all_preds, all_labels)]) / len(all_labels)
-        val_precision = precision_score(all_labels, all_preds, average="macro")
-        val_recall = recall_score(all_labels, all_preds, average="macro")
-        val_f1 = f1_score(all_labels, all_preds, average="macro")
+        val_precision = precision_score(all_labels, all_preds, average="macro", zero_division=0)
+        val_recall = recall_score(all_labels, all_preds, average="macro", zero_division=0)
+        val_f1 = f1_score(all_labels, all_preds, average="macro", zero_division=0)
 
         metrics = {
             "accuracy": val_acc,
@@ -135,11 +135,9 @@ class TrainPipeline:
 
     def train(self) -> Optional[Tuple[nn.Module, Dict[str, float]]]:
         """
-        Runs full training loop with validation,
-        scheduler stepping and early stopping.
+        Runs full training loop with validation, scheduler stepping and early stopping.
         Returns:
-            nn.Module: best model (restored using early stopping)
-            metrics: dictionary with metrics
+            (model, metrics): best model (restored using EarlyStopping) and dictionary with metrics
         """
         if self.device == "cpu":
             print("CUDA is NOT available!!")
@@ -159,20 +157,20 @@ class TrainPipeline:
             self.metrics["val_recall"].append(metrics["recall"])
             self.metrics["val_f1"].append(metrics["f1"])
 
-            print(f"[{epoch+1}/{self.epochs}] train={train_loss:.4f} | val={val_loss:.4f} | acc={val_acc:.4f}")
+            print(f"[{epoch+1}/{self.epochs}] train={train_loss:.4f} | loss={val_loss:.4f} | acc={val_acc:.4f}")
 
             if self.scheduler is not None:
                 self.scheduler.step(val_loss)
 
             if self.early_stopping is not None:
-                if self.early_stopping.step(val_loss, self.model):
+                if not self.early_stopping.step(self.model, val_loss):
                     print(f"[{epoch+1}/{self.epochs}] Early stopping triggered.\n",
-                          f"\ttrain={train_loss:.4f} | val={val_loss:.4f} | acc={val_acc:.4f}")
+                          f"\ttrain={train_loss:.4f} | loss={val_loss:.4f} | acc={val_acc:.4f}")
                     break
 
         # best model state
         if self.early_stopping is not None:
-            self.model.load_state_dict(self.early_stopping.best_state)
+            self.model.load_state_dict(self.early_stopping.get_best_state)
 
         # test
         test_loss, test_acc = self._test()

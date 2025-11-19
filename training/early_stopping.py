@@ -2,9 +2,9 @@ from torch import nn
 
 class EarlyStopping:
     """Class responsible for model training early stopping"""
-    def __init__(self, patiance: int = 5):
-        self.patiance = patiance
-        self.best_loss = float('-inf')
+    def __init__(self, patience: int = 5):
+        self.patience = patience
+        self.best_loss = float('inf')
         self.best_state = None
         self.counter = 0
 
@@ -24,8 +24,8 @@ class EarlyStopping:
             return True
         else:
             self.counter += 1
-            return self.counter < self.patiance
+            return self.counter < self.patience
         
     @property
-    def best_state(self) -> dict:
+    def get_best_state(self) -> dict|None:
         return self.best_state

@@ -42,9 +42,10 @@ val_ds.dataset.transform = img_transform
 test_ds.dataset.transform = img_transform
 
 # dataloaders
-train_loader = DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=True, num_workers=4)
-val_loader = DataLoader(val_ds, batch_size=BATCH_SIZE, shuffle=False, num_workers=4)
-test_loader = DataLoader(test_ds, batch_size=BATCH_SIZE, shuffle=False, num_workers=4)
+print("Load data...")
+train_loader = DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=True)
+val_loader = DataLoader(val_ds, batch_size=BATCH_SIZE, shuffle=False)
+test_loader = DataLoader(test_ds, batch_size=BATCH_SIZE, shuffle=False)
 
 # handle class disbalance calculated class weights
 targets = [y for _, y in full_dataset.samples]
@@ -76,15 +77,16 @@ pipeline = TrainPipeline(
 )
 
 #  train
+print("Training starts...")
 best_model, metrics = pipeline.train()
 
 # save model & metrics
 os.makedirs("saved_models", exist_ok=True)
 os.makedirs("results", exist_ok=True)
+now = datetime.now()
+postfix = now.strftime('%d-%m_%H-%M')
 
 if best_model is not None:
-    now = datetime.now()
-    postfix = now.strftime('%d-%m_%H-%M')
     torch.save(
         best_model.state_dict(), 
         f"saved_models/best_model_{postfix}.pth"
