@@ -157,7 +157,7 @@ class TrainPipeline:
             self.metrics["val_recall"].append(metrics["recall"])
             self.metrics["val_f1"].append(metrics["f1"])
 
-            print(f"[{epoch+1}/{self.epochs}] train={train_loss:.4f} | loss={val_loss:.4f} | acc={val_acc:.4f}")
+            print(f"[{epoch+1}/{self.epochs}] train loss={train_loss:.4f} | val loss={val_loss:.4f} | val acc={val_acc:.4f}")
 
             if self.scheduler is not None:
                 self.scheduler.step(val_loss)
@@ -165,7 +165,7 @@ class TrainPipeline:
             if self.early_stopping is not None:
                 if not self.early_stopping.step(self.model, val_loss):
                     print(f"[{epoch+1}/{self.epochs}] Early stopping triggered.\n",
-                          f"\ttrain={train_loss:.4f} | loss={val_loss:.4f} | acc={val_acc:.4f}")
+                          f"\ttrain loss={train_loss:.4f} | val loss={val_loss:.4f} | val acc={val_acc:.4f}")
                     break
 
         # best model state
@@ -174,6 +174,6 @@ class TrainPipeline:
 
         # test
         test_loss, test_acc = self._test()
-        print(f"\n[TEST]: loss={test_loss:.4f}  acc={test_acc:.4f}")
+        print(f"\n[TEST]: test loss={test_loss:.4f}  test acc={test_acc:.4f}")
 
         return self.model, self.metrics
