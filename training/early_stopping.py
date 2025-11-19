@@ -5,7 +5,7 @@ class EarlyStopping:
     def __init__(self, patience: int = 5):
         self.patience = patience
         self.best_loss = float('inf')
-        self.best_state = None
+        self._best_state = None
         self.counter = 0
 
     def step(self, model: nn.Module, val_loss: float) -> bool:
@@ -19,7 +19,7 @@ class EarlyStopping:
         """
         if val_loss < self.best_loss:
             self.best_loss = val_loss
-            self.best_state = {k: v.cpu() for k, v in model.state_dict().items()}
+            self._best_state = {k: v.cpu() for k, v in model.state_dict().items()}
             self.counter = 0
             return True
         else:
@@ -27,5 +27,5 @@ class EarlyStopping:
             return self.counter < self.patience
         
     @property
-    def get_best_state(self) -> dict|None:
-        return self.best_state
+    def best_state(self) -> dict|None:
+        return self._best_state

@@ -143,7 +143,7 @@ class TrainPipeline:
             print("CUDA is NOT available!!")
             answer = input("Type 'yes' if you have tons of time and want to continue: ")
             if not answer.startswith("y"):
-                return
+                return (None, None)
 
         for epoch in range(self.epochs):
             train_loss = self._train_epoch()
@@ -170,7 +170,7 @@ class TrainPipeline:
 
         # best model state
         if self.early_stopping is not None:
-            self.model.load_state_dict(self.early_stopping.get_best_state)
+            self.model.load_state_dict(self.early_stopping.best_state)
 
         # test
         test_loss, test_acc = self._test()
