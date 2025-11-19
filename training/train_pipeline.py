@@ -160,7 +160,7 @@ class TrainPipeline:
             print(f"[{epoch+1}/{self.epochs}] train loss={train_loss:.4f} | val loss={val_loss:.4f} | val acc={val_acc:.4f}")
 
             if self.scheduler is not None:
-                self.scheduler.step(val_loss)
+                self.scheduler.step()
 
             if self.early_stopping is not None:
                 if not self.early_stopping.step(self.model, val_loss):
