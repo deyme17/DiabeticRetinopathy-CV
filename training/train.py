@@ -12,6 +12,7 @@ from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 from models import BaseLineCNN
 
+from .utils import calculate_mean_std
 from .early_stopping import EarlyStopping
 from .train_pipeline import TrainPipeline
 from .config import (
@@ -22,33 +23,38 @@ from .config import (
 
 def start_training() -> None:
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    # transform
-    img_transform = transforms.Compose([
+
+    base_transform = transforms.Compose([
         transforms.Resize(IMAGE_SIZE),
-        transforms.ToTensor(),
+        transforms.ToTensor()
     ])
-    # dataset
-    full_dataset = datasets.ImageFolder("data", transform=img_transform)
+    full_dataset = datasets.ImageFolder("data", transform=base_transform)
     num_classes = len(full_dataset.classes)
 
     # train/val/test split
     train_size = int(TRAIN_VAL_SPLIT[0] * len(full_dataset))
     val_size = int(TRAIN_VAL_SPLIT[1] * len(full_dataset))
     test_size = len(full_dataset) - train_size - val_size
+
     train_ds, val_ds, test_ds = torch.utils.data.random_split(
         full_dataset, [train_size, val_size, test_size],
         generator=torch.Generator().manual_seed(MANUAL_SEED)
     )
-
-    # apply val/test transforms
-    val_ds.dataset.transform = img_transform
-    test_ds.dataset.transform = img_transform
+    mean, std = calculate_mean_std(train_ds, batch_size=BATCH_SIZE)
+    imgNorm_transform = transforms.Compose([
+        transforms.Resize(IMAGE_SIZE),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=mean, std=std)
+    ])
+    train_ds.dataset.transform = imgNorm_transform
+    val_ds.dataset.transform = imgNorm_transform
+    test_ds.dataset.transform = imgNorm_transform
 
     # dataloaders
     print("Load data...")
     train_loader = DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=True, num_workers=3)
-    val_loader = DataLoader(val_ds, batch_size=BATCH_SIZE, shuffle=False, num_workers=3)
-    test_loader = DataLoader(test_ds, batch_size=BATCH_SIZE, shuffle=False, num_workers=3)
+    val_loader = DataLoader(val_ds, batch_size=BATCH_SIZE, shuffle=True, num_workers=3)
+    test_loader = DataLoader(test_ds, batch_size=BATCH_SIZE, shuffle=True, num_workers=3)
 
     # handle class disbalance calculated class weights
     targets = [y for _, y in full_dataset.samples]
@@ -90,10 +96,10 @@ def start_training() -> None:
     postfix = now.strftime('%d-%m_%H-%M')
 
     if best_model is not None:
-        torch.save(
-            best_model.state_dict(), 
-            f"saved_models/best_model_{postfix}.pth"
-        )
+        torch.save({
+            'model_state_dict': best_model.state_dict(),
+            'optimizer_state_dict': optimizer.state_dict(),
+        }, f"saved_models/checkpoint_{postfix}.pth")
     if metrics is not None:
         with open(f"results/metrics_{postfix}.json", "w") as f:
             json.dump(metrics, f, indent=4)
