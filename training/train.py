@@ -1,6 +1,3 @@
-from sklearn.utils.class_weight import compute_class_weight
-import numpy as np
-
 from multiprocessing import freeze_support
 from datetime import datetime
 import os
@@ -9,66 +6,45 @@ import json
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
-from torchvision import datasets, transforms
 from models import BaseLineCNN
 
-from .utils import calculate_mean_std
-from .early_stopping import EarlyStopping
-from .train_pipeline import TrainPipeline
-from .config import (
+from training.data_processor import DataProcessor
+from training.early_stopping import EarlyStopping
+from training.train_pipeline import TrainPipeline
+from training.config import (
     BATCH_SIZE, LEARNING_RATE, NUM_EPOCHS, 
     ES_PATIANCE, LRS_PATIANCE, LRS_PLATO_FACTOR,
-    MANUAL_SEED, TRAIN_VAL_SPLIT, IMAGE_SIZE
+    MANUAL_SEED, TRAIN_VAL_TEST_SPLIT, IMAGE_SIZE
 )
 
 def start_training() -> None:
     device = "cuda" if torch.cuda.is_available() else "cpu"
-
-    base_transform = transforms.Compose([
-        transforms.Resize(IMAGE_SIZE),
-        transforms.ToTensor()
-    ])
-    full_dataset = datasets.ImageFolder("data", transform=base_transform)
-    num_classes = len(full_dataset.classes)
-
-    # train/val/test split
-    train_size = int(TRAIN_VAL_SPLIT[0] * len(full_dataset))
-    val_size = int(TRAIN_VAL_SPLIT[1] * len(full_dataset))
-    test_size = len(full_dataset) - train_size - val_size
-
-    train_ds, val_ds, test_ds = torch.utils.data.random_split(
-        full_dataset, [train_size, val_size, test_size],
-        generator=torch.Generator().manual_seed(MANUAL_SEED)
+    # load and preprocess data
+    processor = DataProcessor(
+        data_path="data",
+        image_size=IMAGE_SIZE,
+        train_val_test_split=TRAIN_VAL_TEST_SPLIT,
+        manual_seed=MANUAL_SEED
     )
-    mean, std = calculate_mean_std(train_ds, batch_size=BATCH_SIZE)
-    imgNorm_transform = transforms.Compose([
-        transforms.Resize(IMAGE_SIZE),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=mean, std=std)
-    ])
-    train_ds.dataset.transform = imgNorm_transform
-    val_ds.dataset.transform = imgNorm_transform
-    test_ds.dataset.transform = imgNorm_transform
-
+    train_ds, val_ds, test_ds = processor.process(
+        batch_size=BATCH_SIZE,
+        use_augmentation=False,
+    )
     # dataloaders
     print("Load data...")
     train_loader = DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=True, num_workers=3)
     val_loader = DataLoader(val_ds, batch_size=BATCH_SIZE, shuffle=True, num_workers=3)
     test_loader = DataLoader(test_ds, batch_size=BATCH_SIZE, shuffle=True, num_workers=3)
 
-    # handle class disbalance calculated class weights
-    targets = [y for _, y in full_dataset.samples]
-    class_weights = compute_class_weight(class_weight="balanced", classes=np.unique(targets), y=targets)
-    class_weights = torch.tensor(class_weights, dtype=torch.float).to(device)
-
     # model
-    model = BaseLineCNN(num_classes)
+    model = BaseLineCNN(processor.num_classes)
 
     # criterion, optimizer, scheduler
+    class_weights = processor.compute_class_weights(dataset=train_ds, device=device)
     criterion = nn.CrossEntropyLoss(weight=class_weights)
     optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 
-                                                        factor=LRS_PLATO_FACTOR, 
+                                                        factor=LRS_PLATO_FACTOR,
                                                         patience=LRS_PATIANCE)
     early_stopping = EarlyStopping(patience=ES_PATIANCE)
 
