@@ -33,12 +33,12 @@ class BaseLineCNN(nn.Module):
             nn.ReLU(),
         )
         # avg pool
-        self.avgpool = nn.AdaptiveAvgPool2d((2, 2))
+        self.avgpool = nn.AdaptiveAvgPool2d((4, 4))
         # classification
         self.classifier = nn.Sequential(
-            nn.Linear(512 * 2 * 2, 256),
+            nn.Linear(512 * 4 * 4, 256),
             nn.ReLU(),
-            nn.Dropout(0.4),
+            # nn.Dropout(0.4),
             nn.Linear(256, n_classes),
         )
 
