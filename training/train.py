@@ -101,7 +101,7 @@ def start_training() -> None:
             'optimizer_state_dict': optimizer.state_dict(),
         }, f"saved_models/checkpoint_{postfix}.pth")
     if metrics is not None:
-        with open(f"results/metrics_{postfix}.json", "w") as f:
+        with open(f"results/metrics_baseline({postfix}).json", "w") as f:
             json.dump(metrics, f, indent=4)
 
 # main section
