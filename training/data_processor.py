@@ -46,14 +46,14 @@ class DataProcessor:
             raise Exception("Dataset is not processed yet")
         return self._num_classes
     
-    def process(self, batch_size: int = 32, use_augmentation: bool = False) -> Tuple[Subset, Subset, Subset, torch.Tensor]:
+    def process(self, batch_size: int = 32, use_augmentation: bool = False) -> Tuple[Subset, Subset, Subset]:
         """
         Full pipeline: load, split, normalize, and prepare datasets.
         Args:
             batch_size: Batch size for normalization calculation
             use_augmentation: Whether to use data augmentation
         Returns:
-            Tuple of (train_ds, val_ds, test_ds, class_weights)
+            Tuple of (train_ds, val_ds, test_ds)
         """
         # load and split
         self._full_dataset = self.load_dataset()

@@ -75,7 +75,7 @@ def start_training() -> None:
         torch.save({
             'model_state_dict': best_model.state_dict(),
             'optimizer_state_dict': optimizer.state_dict(),
-        }, f"checkpoints/checkpoint_{postfix}.pth")
+        }, f"checkpoints/checkpoint_baseline({postfix}).pth")
     if metrics is not None:
         with open(f"results/metrics_baseline({postfix}).json", "w") as f:
             json.dump(metrics, f, indent=4)
